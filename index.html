@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>مصاريف الشاحنات</title>
+<meta name="theme-color" content="#0f6b5c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+/* Layout: one phone-width column. Truck list -> truck page with one big "add expense" button -> bottom sheet. Paper-white ground, deep teal for actions, brick red for money spent. */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --fg:#14211f; --muted:#5a6b68; --line:#d9e2e0; --chip:#e5edeb;
+  --accent:#0f6b5c; --accent-ink:#ffffff; --accent-soft:#dcefeb; --bad:#b4372a; --bad-soft:#f8e4e0;
+  --font-display:'Cairo','Segoe UI',Tahoma,sans-serif; --font-body:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1514; --surface:#162120; --fg:#e7efed; --muted:#9db0ac; --line:#263634; --chip:#1e2d2b;
+  --accent:#4fc3ad; --accent-ink:#082320; --accent-soft:#16332f; --bad:#ff8f7d; --bad-soft:#3a1f1b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1514; --surface:#162120; --fg:#e7efed; --muted:#9db0ac; --line:#263634; --chip:#1e2d2b;
+  --accent:#4fc3ad; --accent-ink:#082320; --accent-soft:#16332f; --bad:#ff8f7d; --bad-soft:#3a1f1b; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2{font-family:var(--font-display);margin:0;text-wrap:balance}
+.app{max-width:480px;margin:0 auto;padding-block:18px 48px;display:flex;flex-direction:column;gap:14px}
+.num{font-variant-numeric:tabular-nums;unicode-bidi:isolate;direction:ltr;display:inline-block}
+.cur{font-size:.8em;opacity:.8}
+.muted{color:var(--muted)}.small{font-size:13px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.plate{font-family:var(--font-display);font-weight:800;letter-spacing:.08em;border:2px solid var(--fg);border-radius:8px;padding:1px 10px;direction:ltr;unicode-bidi:isolate;display:inline-block;background:var(--surface);white-space:nowrap}
+.btn{min-height:48px;border-radius:12px;padding:0 18px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:500}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:600}
+.btn.big{min-height:68px;font-size:20px;font-family:var(--font-display);font-weight:700;border-radius:16px;width:100%}
+.btn.block{width:100%}
+.btn.danger{color:var(--bad)}
+.btn[disabled]{opacity:.45;cursor:default}
+.top h1{font-size:25px;font-weight:800}
+.top p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.truck{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:76px;padding:12px 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);cursor:pointer;text-align:start}
+.truck:hover,.truck:focus-visible{border-color:var(--accent)}
+.truck .plate{font-size:23px}
+.truck .sum{text-align:end;line-height:1.3}
+.truck .sum b{display:block;font-size:17px;font-weight:600}
+.total{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.total b{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--bad)}
+.paper{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.pr{display:grid;grid-template-columns:minmax(104px,1fr) 1.3fr minmax(88px,.85fr);border-top:1px solid var(--line)}
+.pr:first-child{border-top:0}
+.pr>div{padding:10px 12px;min-width:0}
+.pr>div+div{border-inline-start:1px solid var(--line)}
+.pr.hd{background:var(--chip);font-size:13px;color:var(--muted);font-weight:600}
+.pr.hd>div{padding:8px 12px}
+.pr .a{font-weight:700;color:var(--bad);white-space:nowrap}
+.pr .n{overflow-wrap:anywhere}
+.pr .d{font-size:13px;color:var(--muted);line-height:1.4}
+.pr.ft{background:var(--chip);font-weight:700}
+.pr.ft .a{font-size:17px}
+.acts{display:inline-flex;gap:12px;flex-wrap:wrap}
+.xbtn{border:0;background:none;color:var(--muted);font-size:13px;cursor:pointer;padding:6px 0;min-height:32px}
+.xbtn.sure{color:var(--bad);font-weight:600}
+.empty{text-align:center;padding:26px 10px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:14px}
+.empty b{display:block;color:var(--fg);font-size:17px;margin-bottom:4px}
+.sheet{position:fixed;inset:0;z-index:40}
+.scrim{position:absolute;inset:0;background:rgba(8,14,13,.55)}
+.panel{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:480px;max-height:92%;overflow-y:auto;background:var(--surface);border-radius:18px 18px 0 0;padding:18px max(16px,env(safe-area-inset-left,0px)) calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.panel>*{flex-shrink:0}
+.panel h2{font-size:20px}
+.fl{font-size:13px;color:var(--muted);display:block;margin:4px 0}
+.fld{width:100%;min-height:50px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:0 12px;font-size:17px}
+.fld.amount{font-family:var(--font-display);font-weight:800;font-size:38px;min-height:76px;text-align:center;direction:ltr;background:var(--surface);border-width:2px}
+.fld.platein{font-family:var(--font-display);font-weight:800;letter-spacing:.08em;font-size:22px;text-align:center;direction:ltr;min-height:56px}
+textarea.fld{padding:10px 12px;min-height:84px;resize:vertical}
+.err{color:var(--bad);font-size:14px;min-height:1em}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:60;max-width:calc(100% - 32px);font-size:14px;text-align:center}
+.hint{background:var(--accent-soft);border-radius:12px;padding:10px 12px;font-size:13.5px}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}
+.tools{display:flex;gap:8px}.tools .btn{flex:1;min-height:44px;font-size:14px}
+.bk{font-size:13px;color:var(--muted);margin:0 2px}.bk.warn{color:var(--bad)}
+</style>
+
+
+</head>
+<body>
+<div class="app" id="app" dir="rtl" lang="ar"><main id="view" style="display:flex;flex-direction:column;gap:14px"></main></div>
+<div class="sheet" id="sheet" dir="rtl" lang="ar" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" dir="rtl" hidden></div>
+
+<script>
+(function(){
+'use strict';
+var MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+var KEY='masarif-shahinat-v1',CUR='أوقية';
+function pad(n){return String(n).padStart(2,'0')}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function parse(s){var p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
+function todayStr(){return ymd(new Date())}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function num(n){return Math.round(n*100)/100===Math.round(n)?Math.round(n).toLocaleString('en-US'):(Math.round(n*100)/100).toLocaleString('en-US',{maximumFractionDigits:2})}
+function $(s,r){return (r||document).querySelector(s)}
+function normDigits(s){return String(s).replace(/[٠-٩]/g,function(c){return '٠١٢٣٤٥٦٧٨٩'.indexOf(c)}).replace(/[۰-۹]/g,function(c){return '۰۱۲۳۴۵۶۷۸۹'.indexOf(c)})}
+function parseAmount(s){var t=normDigits(s).replace(/[،٬,\s]/g,'').replace('٫','.');var n=parseFloat(t);return isFinite(n)?n:NaN}
+function normPlate(s){return normDigits(s).replace(/\s+/g,' ').trim().toUpperCase()}
+function plateKey(s){return normPlate(s).replace(/[\s-]/g,'')}
+function newId(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function val(id){var el=$('#'+id);return el?String(el.value==null?'':el.value).trim():''}
+function timeStr(ts){var d=new Date(ts);return isNaN(d)?'':pad(d.getHours())+':'+pad(d.getMinutes())}
+function longDate(s){var d=parse(s);return d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear()}
+function monthLabel(m){var p=m.split('-');return MONTHS[Number(p[1])-1]+' '+p[0]}
+function plateHtml(p){return '<bdi class="plate">'+esc(p)+'</bdi>'}
+function sn(s){var p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function cell(n){return '<span class="num">'+num(n)+'</span><br><span class="cur">'+CUR+'</span>'}
+function money(n){return '<span class="num">'+num(n)+'</span> <span class="cur">'+CUR+'</span>'}
+function toast(m){var t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(function(){t.hidden=true},3000)}
+
+/* ---------- state: this device always, plus the account when available ---------- */
+function loadLocal(){try{var s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.trucks)&&Array.isArray(s.exps))return s}catch(e){}return null}
+var S=loadLocal()||{trucks:[],exps:[]};
+var saveFailed=false;
+var ui={view:'home',tid:null,confirm:null,eid:null,restore:null};
+var P={db:null,uid:null,dl:null,pend:0,cloud:false,migrated:false,q:Promise.resolve()};
+function localSave(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){if(!saveFailed){saveFailed=true;toast('تعذّر الحفظ على هذا الجهاز. تأكد أنك لا تتصفح في وضع خاص.')}}}
+function col(n){return P.db.collection('data/users/'+P.uid+'/'+n)}
+function q(fn){if(!P.db)return;P.pend++;P.q=P.q.then(fn).catch(function(){P.cloud=false;toast('تعذّر الحفظ في حسابك. البيانات محفوظة على هذا الجهاز.')}).then(function(){P.pend--})}
+function tDoc(t){return{plate:t.plate,created:t.created}}
+function eDoc(e){return{tid:e.tid,amount:e.amount,note:e.note||'',date:e.date,ts:e.ts,upd:e.upd||''}}
+function putTruck(t){localSave();q(function(){return col('trucks').doc(t.id).set(tDoc(t))})}
+function putExp(e){localSave();q(function(){return col('exps').doc(e.id).set(eDoc(e))})}
+function delTruck(id){localSave();q(function(){return col('trucks').doc(id).delete()})}
+function delExp(id){localSave();q(function(){return col('exps').doc(id).delete()})}
+async function connect(){
+  try{
+    if(!window.claude||!window.claude.use)return;
+    try{P.dl=await window.claude.use('downloads')}catch(x){}
+    var db=await window.claude.use('db'),user=await window.claude.use('user');
+    if(!db||!user)return;
+    var uid=await user.id();if(!uid)return;
+    P.db=db;P.uid=uid;
+  }catch(e){return}
+  var local=JSON.parse(JSON.stringify(S));
+  col('trucks').onSnapshot(function(snap){
+    if(snap.empty&&!snap.metadata.fromCache&&!P.migrated){
+      P.migrated=true;P.cloud=true;
+      local.trucks.forEach(function(t){q(function(){return col('trucks').doc(t.id).set(tDoc(t))})});
+      local.exps.forEach(function(e){q(function(){return col('exps').doc(e.id).set(eDoc(e))})});
+      return;
+    }
+    if(P.pend>0||(snap.metadata.fromCache&&snap.empty))return;
+    P.cloud=true;P.migrated=true;
+    S.trucks=snap.docs.map(function(d){var x=d.data()||{};return{id:d.id,plate:x.plate||'',created:x.created||''}});
+    localSave();render();
+  },function(){});
+  col('exps').onSnapshot(function(snap){
+    if(P.pend>0||(snap.metadata.fromCache&&snap.empty)||!P.migrated)return;
+    S.exps=snap.docs.map(function(d){var x=d.data()||{};return{id:d.id,tid:x.tid,amount:Number(x.amount)||0,note:x.note||'',date:x.date||'',ts:x.ts||'',upd:x.upd||''}});
+    localSave();render();
+  },function(){});
+}
+
+/* ---------- helpers ---------- */
+function tById(id){return S.trucks.filter(function(t){return t.id===id})[0]}
+function expsOf(tid){return S.exps.filter(function(e){return e.tid===tid}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:(a.ts<b.ts?1:a.ts>b.ts?-1:0)})}
+function sumOf(list){return list.reduce(function(a,e){return a+e.amount},0)}
+function groupMonths(list){var out=[],map={};list.forEach(function(e){var m=e.date.slice(0,7);if(!map[m]){map[m]={m:m,items:[],total:0};out.push(map[m])}map[m].items.push(e);map[m].total+=e.amount});return out}
+
+/* ---------- views ---------- */
+function homeView(){
+  var h='<header class="top"><h1>مصاريف الشاحنات</h1><p>اختر الشاحنة لتسجيل مصروف أو عرض كشفها.</p></header>';
+  if(!S.trucks.length){
+    h+='<div class="empty"><b>لا توجد شاحنات بعد</b>أضف رقم أول شاحنة لتبدأ.</div>';
+  }else{
+    S.trucks.slice().sort(function(a,b){return a.created<b.created?-1:a.created>b.created?1:0}).forEach(function(t){
+      var es=expsOf(t.id),last=es[0];
+      h+='<button class="truck" data-act="open" data-id="'+esc(t.id)+'">'+plateHtml(t.plate)+'<span class="sum"><b>'+money(sumOf(es))+'</b><span class="muted small">'+(last?'آخر مصروف: '+esc(longDate(last.date)):'لا توجد مصاريف')+'</span></span></button>';
+    });
+  }
+  h+='<button class="btn block" data-act="add-truck">+ إضافة شاحنة</button>';
+  if(S.exps.length)h+='<button class="btn block" data-act="pdf-all">تنزيل كشف كل الشاحنات (PDF)</button>';
+  var old=S.lastBackup?Math.round((parse(todayStr())-parse(S.lastBackup))/864e5):null;
+  h+='<div class="tools"><button class="btn" data-act="backup">نسخة احتياطية</button><button class="btn" data-act="restore">استرجاع من ملف</button></div>';
+  h+='<p class="bk'+((S.trucks.length&&(old===null||old>30))?' warn':'')+'">'+(S.lastBackup?'آخر نسخة احتياطية: '+esc(longDate(S.lastBackup)):(S.trucks.length?'لم تأخذ نسخة احتياطية بعد. بياناتك على هذا الجهاز فقط، فاحتفظ بنسخة.':'بياناتك تُحفظ على هذا الجهاز فقط.'))+'</p><input type="file" id="restore-in" accept=".json,application/json" hidden>';
+  return h;
+}
+function truckView(t){
+  var es=expsOf(t.id),h='<div class="row"><button class="btn" data-act="back">‹ الشاحنات</button>'+plateHtml(t.plate)+'</div>';
+  h+='<div class="row" style="gap:8px"><button class="btn" style="flex:1" data-act="edit-truck">تعديل رقم الشاحنة</button><button class="btn danger" style="flex:1" data-act="del-truck">'+(ui.confirm==='T'+t.id?'تأكيد حذف الشاحنة'+(es.length?' و'+es.length+' مصروف':''):'حذف الشاحنة')+'</button></div>';
+  h+='<button class="btn primary big" data-act="add-exp">+ إضافة مصروف</button>';
+  h+='<div class="total"><span class="muted">مجموع المصاريف ('+es.length+')</span><b>'+money(sumOf(es))+'</b></div>';
+  if(!es.length)return h+'<div class="empty"><b>لا توجد مصاريف</b>اضغط «إضافة مصروف» وسجّل أول مبلغ.</div>';
+  var asc=es.slice().reverse();
+  h+='<div class="paper"><div class="pr hd"><div>المبلغ</div><div>العطل أو سبب الصرف</div><div>التاريخ</div></div>';
+  asc.forEach(function(e){
+    var sure=ui.confirm===e.id;
+    h+='<div class="pr"><div class="a">'+cell(e.amount)+'</div><div class="n">'+esc(e.note||'بدون بيان')+'</div><div class="d">'+'<bdi dir="ltr">'+esc(sn(e.date))+'</bdi>'+(e.ts?'<br><bdi dir="ltr">'+esc(timeStr(e.ts))+'</bdi>':'')+(e.upd?'<br><span class="muted" style="font-size:12px">عُدِّل</span>':'')+'<br><span class="acts"><button class="xbtn" data-act="edit-exp" data-id="'+esc(e.id)+'">تعديل</button><button class="xbtn'+(sure?' sure':'')+'" data-act="del" data-id="'+esc(e.id)+'">'+(sure?'تأكيد الحذف':'حذف')+'</button></span></div></div>';
+  });
+  h+='<div class="pr ft"><div class="a">'+cell(sumOf(es))+'</div><div>المجموع</div><div></div></div></div>';
+  h+='<button class="btn block" data-act="pdf-one" style="margin-top:6px">تنزيل كشف هذه الشاحنة (PDF)</button>';
+  return h;
+}
+function render(){
+  var t=ui.view==='truck'&&tById(ui.tid);
+  if(ui.view==='truck'&&!t){ui.view='home'}
+  $('#view').innerHTML=ui.view==='truck'&&t?truckView(t):homeView();
+}
+
+/* ---------- sheets ---------- */
+function openSheet(html){var s=$('#sheet');s.innerHTML='<div class="scrim" data-act="close"></div><div class="panel" role="dialog" aria-modal="true">'+html+'</div>';s.hidden=false;var f=$('#sheet input,#sheet textarea');if(f)try{f.focus()}catch(e){}}
+function closeSheet(){var s=$('#sheet');s.hidden=true;s.innerHTML=''}
+function addTruckSheet(){
+  openSheet('<h2>إضافة شاحنة</h2><label class="fl" for="t-plate">رقم الشاحنة</label><input id="t-plate" class="fld platein" type="text" autocomplete="off" autocapitalize="characters" placeholder="4821 AB 00"><div class="err" id="t-err" role="alert"></div>'+
+    '<button class="btn primary block" data-act="save-truck">حفظ</button><button class="btn block" data-act="close">إلغاء</button>');
+}
+function editTruckSheet(){
+  var t=tById(ui.tid);if(!t)return;
+  openSheet('<h2>تعديل رقم الشاحنة</h2><label class="fl" for="t-plate">رقم الشاحنة</label><input id="t-plate" class="fld platein" type="text" autocomplete="off" autocapitalize="characters" value="'+esc(t.plate)+'"><div class="err" id="t-err" role="alert"></div>'+
+    '<button class="btn primary block" data-act="save-plate">حفظ</button><button class="btn block" data-act="close">إلغاء</button>');
+}
+function savePlate(){
+  var t=tById(ui.tid),p=normPlate(val('t-plate')),err=$('#t-err');if(!t)return;
+  if(!p)return err.textContent='اكتب رقم الشاحنة.';
+  if(S.trucks.some(function(x){return x.id!==t.id&&plateKey(x.plate)===plateKey(p)}))return err.textContent='هذا الرقم مسجّل لشاحنة أخرى.';
+  t.plate=p;putTruck(t);closeSheet();render();toast('تم تعديل الرقم');
+}
+function editExpSheet(id){
+  var e=S.exps.filter(function(x){return x.id===id})[0];if(!e)return;ui.eid=id;
+  openSheet('<h2>تعديل المصروف</h2><label class="fl" for="x-amt">المبلغ ('+CUR+')</label><input id="x-amt" class="fld amount" type="text" inputmode="decimal" autocomplete="off" value="'+esc(String(e.amount))+'">'+
+    '<label class="fl" for="x-note">العطل أو سبب الصرف</label><textarea id="x-note" class="fld">'+esc(e.note||'')+'</textarea>'+
+    '<label class="fl" for="x-date">التاريخ</label><input id="x-date" class="fld" type="date" value="'+esc(e.date)+'">'+
+    '<div class="err" id="x-err" role="alert"></div><button class="btn primary block" data-act="save-edit">حفظ التعديل</button><button class="btn block" data-act="close">إلغاء</button>');
+}
+function saveEdit(){
+  var e=S.exps.filter(function(x){return x.id===ui.eid})[0],amt=parseAmount(val('x-amt')),err=$('#x-err');if(!e)return;
+  if(!(amt>0))return err.textContent='اكتب المبلغ بالأرقام.';
+  var note=val('x-note'),date=val('x-date')||e.date;
+  if(amt!==e.amount||note!==(e.note||'')||date!==e.date){e.amount=amt;e.note=note;e.date=date;e.upd=new Date().toISOString();putExp(e)}
+  closeSheet();render();toast('تم حفظ التعديل');
+}
+function saveTruck(){
+  var p=normPlate(val('t-plate')),err=$('#t-err');
+  if(!p)return err.textContent='اكتب رقم الشاحنة.';
+  if(S.trucks.some(function(t){return plateKey(t.plate)===plateKey(p)}))return err.textContent='هذا الرقم مسجّل من قبل.';
+  var t={id:newId('t'),plate:p,created:todayStr()+' '+Date.now()};
+  S.trucks.push(t);putTruck(t);closeSheet();render();toast('تمت إضافة الشاحنة');
+}
+function addExpSheet(){
+  var t=tById(ui.tid);if(!t)return;
+  openSheet('<h2>مصروف جديد · '+plateHtml(t.plate)+'</h2><label class="fl" for="x-amt">المبلغ ('+CUR+')</label><input id="x-amt" class="fld amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0">'+
+    '<label class="fl" for="x-note">العطل أو سبب الصرف</label><textarea id="x-note" class="fld" placeholder="مثال: تغيير الفرامل، إصلاح الكلتش، وقود الرحلة"></textarea>'+
+    '<label class="fl" for="x-date">التاريخ (يُضاف تلقائيًا، وتقدر تغييره)</label><input id="x-date" class="fld" type="date" value="'+todayStr()+'">'+
+    '<div class="err" id="x-err" role="alert"></div><button class="btn primary block" data-act="save-exp">حفظ المصروف</button><button class="btn block" data-act="close">إلغاء</button>');
+}
+function saveExp(){
+  var amt=parseAmount(val('x-amt')),err=$('#x-err');
+  if(!(amt>0))return err.textContent='اكتب المبلغ بالأرقام.';
+  var date=val('x-date')||todayStr(),now=new Date();
+  var e={id:newId('e'),tid:ui.tid,amount:amt,note:val('x-note'),date:date,ts:now.toISOString()};
+  S.exps.push(e);putExp(e);closeSheet();render();toast('تم تسجيل المصروف: '+num(amt)+' '+CUR);
+}
+
+/* ---------- PDF (pages drawn on canvas, embedded as JPEG in a minimal PDF) ---------- */
+var PW=1240,PH=1754,PM=70,FONT='"Cairo","IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif';
+function ltr(x){return '‪'+x+'‬'}
+function fit(c,text,w){text=String(text==null?'':text);if(c.measureText(text).width<=w)return text;while(text.length>1&&c.measureText(text+'…').width>w)text=text.slice(0,-1);return text+'…'}
+function wrap(c,text,w,max){
+  var words=String(text).split(/\s+/),lines=[],cur='';
+  words.forEach(function(wd){var t=cur?cur+' '+wd:wd;if(c.measureText(t).width<=w||!cur)cur=t;else{lines.push(cur);cur=wd}});
+  if(cur)lines.push(cur);
+  if(lines.length>max){lines=lines.slice(0,max);lines[max-1]=fit(c,lines[max-1]+'…',w)}
+  return lines;
+}
+function buildPdf(trucks){
+  var pages=[],c,ctx,y;
+  function newPage(){c=document.createElement('canvas');c.width=PW;c.height=PH;ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,PW,PH);ctx.direction='rtl';ctx.textBaseline='middle';pages.push(c);y=PM}
+  function txt(s,x,yy,o){o=o||{};ctx.font=(o.w||400)+' '+(o.s||26)+'px '+FONT;ctx.fillStyle=o.c||'#14211f';ctx.textAlign=o.a||'right';ctx.fillText(s,x,yy)}
+  function need(h){if(y+h>PH-PM-40)newPage()}
+  var W=PW-2*PM,all=[].concat.apply([],trucks.map(function(t){return expsOf(t.id)}));
+  newPage();
+  txt(trucks.length===1?'كشف مصاريف شاحنة':'كشف مصاريف الشاحنات',PW-PM,y+30,{w:700,s:54,c:'#0f6b5c'});y+=78;
+  ctx.fillStyle='#0f6b5c';ctx.fillRect(PM,y,W,5);y+=30;
+  function info(l,r){txt(l,PW-PM,y+14,{s:25,c:'#5a6b68'});txt(r,PW-PM-210,y+14,{w:600,s:25});y+=44}
+  if(trucks.length===1)info('الشاحنة:',ltr(trucks[0].plate));else info('عدد الشاحنات:',String(trucks.length));
+  info('تاريخ الكشف:',longDate(todayStr())+' · '+timeStr(new Date().toISOString()));
+  info('عدد المصاريف:',String(all.length));
+  y+=6;ctx.fillStyle='#f1f5f4';ctx.fillRect(PM,y,W,110);
+  txt('مجموع المصاريف',PW-PM-24,y+32,{s:24,c:'#5a6b68'});txt(num(sumOf(all))+' '+CUR,PW-PM-24,y+76,{w:800,s:44,c:'#b4372a'});y+=140;
+  trucks.forEach(function(t){
+    var es=expsOf(t.id);
+    need(150);
+    ctx.fillStyle='#e3efec';ctx.fillRect(PM,y,W,58);
+    txt(ltr(t.plate),PW-PM-16,y+29,{w:800,s:30,c:'#0b3d32'});txt('المجموع: '+num(sumOf(es))+' '+CUR,PM+16,y+29,{w:700,s:26,a:'left',c:'#b4372a'});y+=66;
+    if(!es.length){txt('لا توجد مصاريف',PW-PM-16,y+24,{s:24,c:'#6b7773'});y+=56;return}
+    var cA=W*0.22,cN=W*0.50,xR=PW-PM,xA=xR-cA,xN=xA-cN,xL=PM;
+    function vlines(y0,y1){ctx.fillStyle='#c9d6d3';ctx.fillRect(xA,y0,1.5,y1-y0);ctx.fillRect(xN,y0,1.5,y1-y0);ctx.fillRect(xR-1.5,y0,1.5,y1-y0);ctx.fillRect(xL,y0,1.5,y1-y0)}
+    function head(){ctx.fillStyle='#e3efec';ctx.fillRect(PM,y,W,46);ctx.fillStyle='#c9d6d3';ctx.fillRect(PM,y,W,1.5);
+      txt('المبلغ',xR-14,y+23,{w:700,s:22,c:'#0b3d32'});txt('العطل أو سبب الصرف',xA-14,y+23,{w:700,s:22,c:'#0b3d32'});txt('التاريخ',xN-14,y+23,{w:700,s:22,c:'#0b3d32'});
+      vlines(y,y+46);ctx.fillStyle='#c9d6d3';ctx.fillRect(PM,y+46,W,1.5);y+=46}
+    head();
+    es.slice().reverse().forEach(function(e){
+      ctx.font='400 23px '+FONT;
+      var lines=wrap(ctx,e.note||'بدون بيان',cN-30,3),rh=Math.max(64,lines.length*32+22);
+      if(y+rh>PH-PM-40){newPage();head()}
+      txt(num(e.amount)+' '+CUR,xR-14,y+rh/2,{w:700,s:24,c:'#b4372a'});
+      lines.forEach(function(ln,i){txt(ln,xA-14,y+(rh-lines.length*32)/2+16+i*32,{s:23})});
+      txt(longDate(e.date),xN-14,y+rh/2-(e.ts?16:0),{s:21});if(e.ts)txt(timeStr(e.ts),xN-14,y+rh/2+16,{s:20,c:'#5a6b68'});
+      vlines(y,y+rh);ctx.fillStyle='#c9d6d3';ctx.fillRect(PM,y+rh,W,1.5);y+=rh;
+    });
+    need(56);ctx.fillStyle='#e3efec';ctx.fillRect(PM,y,W,52);txt(num(sumOf(es))+' '+CUR,xR-14,y+26,{w:800,s:25,c:'#b4372a'});txt('المجموع',xA-14,y+26,{w:700,s:23});vlines(y,y+52);ctx.fillStyle='#c9d6d3';ctx.fillRect(PM,y+52,W,1.5);y+=52;
+    y+=26;
+  });
+  pages.forEach(function(pg,i){ctx=pg.getContext('2d');ctx.direction='rtl';ctx.textBaseline='middle';txt('صفحة '+(i+1)+' من '+pages.length+' · مصاريف الشاحنات',PW/2,PH-PM+10,{s:20,a:'center',c:'#8a9996'})});
+  return pages;
+}
+function pdfBytes(jpegs){
+  var enc=new TextEncoder(),parts=[],len=0,offs=[];
+  function add(x){var b=typeof x==='string'?enc.encode(x):x;parts.push(b);len+=b.length}
+  function obj(n,body){offs[n]=len;add(n+' 0 obj\n');add(body);add('\nendobj\n')}
+  add('%PDF-1.4\n');
+  var n=jpegs.length,kids=[];for(var i=0;i<n;i++)kids.push((3+i*3)+' 0 R');
+  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2,'<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+n+' >>');
+  jpegs.forEach(function(j,i){
+    var pg=3+i*3,im=pg+1,ct=pg+2,cs='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q';
+    obj(pg,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 '+im+' 0 R >> >> /Contents '+ct+' 0 R >>');
+    offs[im]=len;add(im+' 0 obj\n<< /Type /XObject /Subtype /Image /Width '+PW+' /Height '+PH+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+j.length+' >>\nstream\n');add(j);add('\nendstream\nendobj\n');
+    obj(ct,'<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream');
+  });
+  var total=3+n*3,xo=len;
+  add('xref\n0 '+total+'\n0000000000 65535 f \n');
+  for(var k=1;k<total;k++)add(String(offs[k]).padStart(10,'0')+' 00000 n \n');
+  add('trailer\n<< /Size '+total+' /Root 1 0 R >>\nstartxref\n'+xo+'\n%%EOF');
+  var out=new Uint8Array(len),pos=0;parts.forEach(function(b){out.set(b,pos);pos+=b.length});return out;
+}
+function saveBlob(blob,name){
+  var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(function(){a.remove();URL.revokeObjectURL(url)},5000);
+}
+async function exportPdf(trucks,name){
+  if(!trucks.length)return;
+  toast('جارٍ تجهيز الملف…');
+  try{
+    try{await Promise.all([document.fonts.load('400 22px Cairo'),document.fonts.load('700 22px Cairo')])}catch(x){}
+    var pages=buildPdf(trucks),jpegs=[];
+    for(var i=0;i<pages.length;i++){var b=await new Promise(function(r){pages[i].toBlob(r,'image/jpeg',0.88)});jpegs.push(new Uint8Array(await b.arrayBuffer()))}
+    saveBlob(new Blob([pdfBytes(jpegs)],{type:'application/pdf'}),name);toast('تم تجهيز الملف');
+  }catch(err){toast('تعذّر تجهيز الملف')}
+}
+/* ---------- backup / restore ---------- */
+function backup(){
+  var data={app:'masarif-shahinat',v:1,at:new Date().toISOString(),trucks:S.trucks,exps:S.exps};
+  saveBlob(new Blob([JSON.stringify(data)],{type:'application/json'}),'masarif-backup-'+todayStr()+'.json');
+  S.lastBackup=todayStr();localSave();render();toast('تم تجهيز النسخة الاحتياطية');
+}
+function pickRestore(file){
+  if(!file)return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(!d||d.app!=='masarif-shahinat'||!Array.isArray(d.trucks)||!Array.isArray(d.exps))throw 0;
+      ui.restore=d;
+      openSheet('<h2>استرجاع نسخة احتياطية</h2><p style="margin:0">الملف يحوي <b>'+d.trucks.length+'</b> شاحنة و<b>'+d.exps.length+'</b> مصروف. سيحل محل بياناتك الحالية على هذا الجهاز (<b>'+S.trucks.length+'</b> شاحنة و<b>'+S.exps.length+'</b> مصروف).</p><button class="btn primary block" data-act="do-restore">استبدال بياناتي بالملف</button><button class="btn block" data-act="close">إلغاء</button>');
+    }catch(e){toast('هذا الملف ليس نسخة احتياطية من هذه الأداة.')}
+    var inp=$('#restore-in');if(inp)inp.value='';
+  };
+  r.onerror=function(){toast('تعذّرت قراءة الملف')};
+  r.readAsText(file);
+}
+function doRestore(){
+  var d=ui.restore;if(!d)return;
+  S.trucks=d.trucks.map(function(t){return{id:String(t.id),plate:String(t.plate||''),created:String(t.created||'')}});
+  S.exps=d.exps.map(function(e){return{id:String(e.id),tid:String(e.tid),amount:Number(e.amount)||0,note:String(e.note||''),date:String(e.date||''),ts:String(e.ts||''),upd:String(e.upd||'')}});
+  ui.restore=null;ui.view='home';ui.tid=null;localSave();closeSheet();render();toast('تم الاسترجاع');
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(ev){
+  var el=ev.target.closest('[data-act]');if(!el)return;
+  var a=el.getAttribute('data-act'),id=el.getAttribute('data-id');
+  if(a==='open'){ui.view='truck';ui.tid=id;ui.confirm=null;render();window.scrollTo(0,0)}
+  else if(a==='back'){ui.view='home';ui.tid=null;ui.confirm=null;render()}
+  else if(a==='add-truck'){addTruckSheet()}
+  else if(a==='save-truck'){saveTruck()}
+  else if(a==='add-exp'){addExpSheet()}
+  else if(a==='save-exp'){saveExp()}
+  else if(a==='edit-exp'){editExpSheet(id)}
+  else if(a==='save-edit'){saveEdit()}
+  else if(a==='edit-truck'){editTruckSheet()}
+  else if(a==='save-plate'){savePlate()}
+  else if(a==='del-truck'){
+    var tt=tById(ui.tid);if(!tt)return;
+    if(ui.confirm==='T'+tt.id){S.exps.filter(function(x){return x.tid===tt.id}).forEach(function(x){delExp(x.id)});S.exps=S.exps.filter(function(x){return x.tid!==tt.id});S.trucks=S.trucks.filter(function(x){return x.id!==tt.id});delTruck(tt.id);ui.confirm=null;ui.view='home';ui.tid=null;toast('تم حذف الشاحنة')}else ui.confirm='T'+tt.id;
+    render();
+  }
+  else if(a==='close'){closeSheet()}
+  else if(a==='del'){
+    if(ui.confirm===id){S.exps=S.exps.filter(function(e){return e.id!==id});delExp(id);ui.confirm=null;toast('تم حذف المصروف')}else ui.confirm=id;
+    render();
+  }
+  else if(a==='pdf-one'){var t=tById(ui.tid);if(t)exportPdf([t],'masarif-'+plateKey(t.plate)+'.pdf')}
+  else if(a==='backup'){backup()}
+  else if(a==='restore'){var ri=$('#restore-in');if(ri)ri.click()}
+  else if(a==='do-restore'){doRestore()}
+  else if(a==='pdf-all'){exportPdf(S.trucks.slice(),'masarif-all-trucks.pdf')}
+});
+document.addEventListener('keydown',function(ev){
+  if(ev.key==='Escape')closeSheet();
+  if(ev.key==='Enter'&&ev.target&&ev.target.id==='t-plate'){if(ui.view==='truck'&&$('[data-act=save-plate]'))savePlate();else saveTruck()}
+  if(ev.key==='Enter'&&ev.target&&ev.target.id==='x-amt'){var n=$('#x-note');if(n)n.focus()}
+});
+document.addEventListener('change',function(ev){if(ev.target&&ev.target.id==='restore-in')pickRestore(ev.target.files&&ev.target.files[0])});
+render();
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+try{if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register('sw.js')}catch(e){}
+})();
+</script>
+</body>
+</html>

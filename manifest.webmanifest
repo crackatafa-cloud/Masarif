@@ -1,0 +1,17 @@
+{
+  "name": "مصاريف الشاحنات",
+  "short_name": "مصاريف الشاحنات",
+  "description": "تسجيل مصاريف الشاحنات بتاريخها وكشف PDF",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#f3f6f5",
+  "theme_color": "#0f6b5c",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
